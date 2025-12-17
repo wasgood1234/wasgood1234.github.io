@@ -37,12 +37,18 @@
     font-size: 18px;
     margin-top: 15px;
   }
+  .timer {
+    text-align: center;
+    font-weight: bold;
+    margin: 10px 0;
+  }
 </style>
 </head>
 <body>
 
 <div class="card">
   <h1>三角比テスト</h1>
+  <div class="timer" id="timer">時間：0.0 秒</div>
   <div id="question"></div>
   <div id="choices"></div>
   <button onclick="nextQuestion()">次の問題</button>
@@ -72,13 +78,36 @@ let count = 0;
 const TOTAL = 10;
 let correctAnswer = "";
 
+// ⏱ タイマー用
+let startTime = 0;
+let totalTime = 0;
+let timerInterval = null;
+
+function startTimer() {
+  startTime = Date.now();
+  timerInterval = setInterval(() => {
+    const now = (Date.now() - startTime) / 1000;
+    document.getElementById("timer").innerText =
+      `時間：${now.toFixed(1)} 秒`;
+  }, 100);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  const elapsed = (Date.now() - startTime) / 1000;
+  totalTime += elapsed;
+  return elapsed;
+}
+
 function nextQuestion() {
   if (count >= TOTAL) {
     document.getElementById("question").innerHTML =
       `<h2>結果：${score} / ${TOTAL}</h2>`;
     document.getElementById("choices").innerHTML = "";
     document.getElementById("result").innerText =
-      score >= 7 ? "🎉 合格！" : "❌ もう一回！";
+      `合計時間：${totalTime.toFixed(1)} 秒\n` +
+      (score >= 7 ? "🎉 合格！" : "❌ もう一回！");
+    document.getElementById("timer").innerText = "";
     return;
   }
 
@@ -109,20 +138,25 @@ function nextQuestion() {
     div.onclick = () => checkAnswer(div, c);
     choicesDiv.appendChild(div);
   });
+
+  startTimer();
 }
 
 function checkAnswer(div, answer) {
+  const elapsed = stopTimer();
+
   const all = document.querySelectorAll(".choice");
   all.forEach(c => c.onclick = null);
 
   if (answer === correctAnswer) {
     div.classList.add("correct");
     score++;
-    document.getElementById("result").innerText = "○ 正解！";
+    document.getElementById("result").innerText =
+      `○ 正解！（${elapsed.toFixed(1)} 秒）`;
   } else {
     div.classList.add("wrong");
     document.getElementById("result").innerText =
-      `× 不正解（正解：${correctAnswer}）`;
+      `× 不正解（正解：${correctAnswer}｜${elapsed.toFixed(1)} 秒）`;
   }
 }
 
@@ -131,3 +165,4 @@ nextQuestion();
 
 </body>
 </html>
+
