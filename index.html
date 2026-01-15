@@ -6,38 +6,30 @@
 <title>三角比テスト</title>
 <style>
   body { font-family: system-ui; background:#f4f4f4; padding:20px; }
-  .card {
-    background:white; padding:18px; border-radius:12px; max-width:440px; margin:auto;
-    box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  }
+  .card { background:white; padding:18px; border-radius:12px; max-width:440px; margin:auto; box-shadow:0 4px 10px rgba(0,0,0,0.1);}
   .choice { padding:12px; margin:8px 0; border:1px solid #ccc; border-radius:8px; background:#fafafa; font-size:18px; cursor:pointer; }
   .choice:hover{ background:#e9e9e9; }
   .correct{ background:#c8f7c5!important; }
   .wrong{ background:#f7c5c5!important; }
   button{ width:100%; padding:12px; margin-top:12px; font-size:18px; border-radius:8px; }
   .timer{ font-weight:bold; margin:10px 0; text-align:center; }
-  .menu button{ margin-top:12px; }
-  .h1 { text-align:center; }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2 class="h1">三角比テスト</h2>
+  <h2 style="text-align:center;">三角比テスト</h2>
 
-  <!-- メニュー -->
-  <div id="menu" class="menu">
+  <div id="menu">
     <p>範囲を選択</p>
-    <button onclick="selectRange('small')">0°〜180°</button>
-    <button onclick="selectRange('large')">180°〜360°</button>
+    <button onclick="selectRange('small')">0〜180°</button>
+    <button onclick="selectRange('large')">180〜360°</button>
   </div>
 
-  <!-- モード選択 -->
   <div id="mode" style="display:none;">
-    <p>モードを選択</p>
+    <p>モード選択</p>
     <button onclick="startGame(10)">通常10問</button>
     <button onclick="startGame(50)">50問連続</button>
-    <button onclick="showRanking()">ランキングを見る</button>
   </div>
 
   <div id="game" style="display:none;">
@@ -47,28 +39,26 @@
     <button onclick="nextQuestion()">次の問題</button>
     <p id="result"></p>
   </div>
-
-  <div id="ranking" style="display:none;">
-    <h3>ランキング</h3>
-    <div id="rankList"></div>
-    <button onclick="backToMenu()">戻る</button>
-  </div>
 </div>
 
 <script>
 const dataSmall = [
+  ["0",0],
   ["π/6",30],["π/4",45],["π/3",60],["π/2",90],
-  ["2π/3",120],["3π/4",135],["5π/6",150],["π",180]
+  ["2π/3",120],["3π/4",135],["5π/6",150],
+  ["π",180]
 ];
 
 const dataLarge = [
-  ["7π/6",210],["5π/4",225],["4π/3",240],["3π/2",270],
-  ["5π/3",300],["7π/4",315],["11π/6",330],["2π",360]
+  ["7π/6",210],["5π/4",225],["4π/3",240],
+  ["3π/2",270],["5π/3",300],["7π/4",315],
+  ["11π/6",330],["2π",360]
 ];
 
 const funcs=["sin","cos","tan"];
 
 const val={
+  sin0:"0",cos0:"1",tan0:"0",
   sin30:"1/2",cos30:"√3/2",tan30:"1/√3",
   sin45:"1/√2",cos45:"1/√2",tan45:"1",
   sin60:"√3/2",cos60:"1/2",tan60:"√3",
@@ -89,20 +79,18 @@ const val={
 }
 
 let rangeData=[];
-let qTotal=10,score=0,count=0,correct="",startT=0,totalT=0,timerInt=null,mode="";
+let total=10,score=0,count=0,correct="",startT=0,totalT=0,timerInt=null;
 
 function selectRange(r){
-  rangeData = r==="small"?dataSmall:dataLarge;
-  document.getElementById("menu").style.display="none";
-  document.getElementById("mode").style.display="block";
+  rangeData=r==="small"?dataSmall:dataLarge;
+  menu.style.display="none";
+  mode.style.display="block";
 }
 
 function startGame(n){
-  qTotal=n;
-  score=0;count=0;totalT=0;
-  mode=`${rangeData===dataSmall?"Small":"Large"}-${n}`;
-  document.getElementById("mode").style.display="none";
-  document.getElementById("game").style.display="block";
+  total=n; score=0; count=0; totalT=0;
+  mode.style.display="none";
+  game.style.display="block";
   nextQuestion();
 }
 
@@ -110,7 +98,7 @@ function startTimer(){
   startT=Date.now();
   timerInt=setInterval(()=>{
     let t=(Date.now()-startT)/1000;
-    document.getElementById("timer").innerText=`時間：${t.toFixed(1)} 秒`;
+    timer.innerText=`時間：${t.toFixed(1)} 秒`;
   },100);
 }
 
@@ -122,28 +110,28 @@ function stopTimer(){
 }
 
 function nextQuestion(){
-  if(count>=qTotal) return finish();
+  if(count>=total) return finish();
 
   count++;
-  document.getElementById("result").innerText="";
+  result.innerText="";
 
   let [rad,deg]=rangeData[Math.floor(Math.random()*rangeData.length)];
   let f=funcs[Math.floor(Math.random()*funcs.length)];
-  correct = val[f+deg];
+  correct=val[f+deg];
 
-  let c=Object.values(val).sort(()=>0.5-Math.random()).slice(0,3);
-  if(!c.includes(correct)) c.push(correct);
-  c.sort(()=>0.5-Math.random());
+  let cs=Object.values(val).sort(()=>0.5-Math.random()).slice(0,3);
+  if(!cs.includes(correct)) cs.push(correct);
+  cs.sort(()=>0.5-Math.random());
 
-  document.getElementById("question").innerHTML=`第${count}問：${f}(${rad})`;
-  let box=document.getElementById("choices");
-  box.innerHTML="";
-  c.forEach(x=>{
-    let div=document.createElement("div");
-    div.className="choice";
-    div.innerText=x;
-    div.onclick=()=>check(div,x);
-    box.appendChild(div);
+  question.innerHTML=`第${count}問：${f}(${rad})`;
+  choices.innerHTML="";
+
+  cs.forEach(x=>{
+    let d=document.createElement("div");
+    d.className="choice";
+    d.innerText=x;
+    d.onclick=()=>check(d,x);
+    choices.appendChild(d);
   });
 
   startTimer();
@@ -152,47 +140,17 @@ function nextQuestion(){
 function check(div,x){
   let t=stopTimer();
   document.querySelectorAll(".choice").forEach(c=>c.onclick=null);
-  if(x===correct){score++;div.classList.add("correct");}
-  else{div.classList.add("wrong");}
-  document.getElementById("result").innerText=`${x===correct?"正解":"不正解"}（${t.toFixed(1)}秒）`;
+
+  if(x===correct){ score++; div.classList.add("correct"); }
+  else{ div.classList.add("wrong"); }
+
+  result.innerText=`${x===correct?"正解":"不正解"}（${t.toFixed(1)}秒）`;
 }
 
 function finish(){
-  document.getElementById("question").innerHTML=`結果：${score}/${qTotal}`;
-  document.getElementById("choices").innerHTML="";
-  document.getElementById("result").innerText=`合計：${totalT.toFixed(1)} 秒`;
-
-  saveRank(mode,totalT);
-  setTimeout(()=>showRanking(),1000);
-}
-
-function saveRank(key,time){
-  let list=JSON.parse(localStorage.getItem(key)||"[]");
-  list.push(time);
-  list.sort((a,b)=>a-b);
-  list=list.slice(0,5);
-  localStorage.setItem(key,JSON.stringify(list));
-}
-
-function showRanking(){
-  document.getElementById("game").style.display="none";
-  document.getElementById("ranking").style.display="block";
-
-  let html="";
-
-  ["Small-10","Small-50","Large-10","Large-50"].forEach(k=>{
-    let list=JSON.parse(localStorage.getItem(k)||"[]");
-    html+=`<p><b>${k}</b></p>`;
-    if(list.length===0) html+="記録なし<br>";
-    else list.forEach((t,i)=>html+=`${i+1}位：${t.toFixed(1)}秒<br>`);
-    html+="<br>";
-  });
-
-  document.getElementById("rankList").innerHTML=html;
-}
-
-function backToMenu(){
-  document.location.reload();
+  question.innerHTML=`終了！ ${score}/${total}`;
+  choices.innerHTML="";
+  result.innerText=`合計：${totalT.toFixed(1)} 秒`;
 }
 </script>
 </body>
