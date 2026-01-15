@@ -5,152 +5,128 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>三角比テスト</title>
 <style>
-  body { font-family: system-ui; background:#f4f4f4; padding:20px; }
-  .card { background:white; padding:18px; border-radius:12px; max-width:440px; margin:auto; box-shadow:0 4px 10px rgba(0,0,0,0.1);}
-  .choice { padding:12px; margin:8px 0; border:1px solid #ccc; border-radius:8px; background:#fafafa; font-size:18px; cursor:pointer; }
-  .choice:hover{ background:#e9e9e9; }
-  .correct{ background:#c8f7c5!important; }
-  .wrong{ background:#f7c5c5!important; }
-  button{ width:100%; padding:12px; margin-top:12px; font-size:18px; border-radius:8px; }
-  .timer{ font-weight:bold; margin:10px 0; text-align:center; }
+body { font-family: system-ui, -apple-system; padding: 20px; background: #f5f5f5; }
+.card { background:white; padding:20px; max-width:420px; margin:auto; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,.1);}
+.choice{padding:12px;margin:10px 0;border:1px solid #ccc;border-radius:8px;background:#fafafa;font-size:18px;cursor:pointer;}
+.choice:hover{background:#eaeaea;}
+.correct{background:#c8f7c5;}
+.wrong{background:#f7c5c5;}
+button{width:100%;padding:12px;font-size:18px;margin-top:15px;}
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h2 style="text-align:center;">三角比テスト</h2>
-
+  <h1>三角比テスト</h1>
   <div id="menu">
-    <p>範囲を選択</p>
-    <button onclick="selectRange('small')">0〜180°</button>
-    <button onclick="selectRange('large')">180〜360°</button>
+    <button onclick="start('low')">0°〜180°</button>
+    <button onclick="start('high')">180°〜360°</button>
+    <button onclick="start('full50')">50問連続（0°〜360°）</button>
   </div>
 
-  <div id="mode" style="display:none;">
-    <p>モード選択</p>
-    <button onclick="startGame(10)">通常10問</button>
-    <button onclick="startGame(50)">50問連続</button>
-  </div>
-
-  <div id="game" style="display:none;">
-    <div class="timer" id="timer">時間：0.0 秒</div>
-    <div id="question"></div>
-    <div id="choices"></div>
-    <button onclick="nextQuestion()">次の問題</button>
-    <p id="result"></p>
-  </div>
+  <div id="question" style="margin-top:20px"></div>
+  <div id="choices"></div>
+  <button id="nextBtn" style="display:none" onclick="nextQuestion()">次の問題</button>
+  <p id="result"></p>
+  <p id="timer"></p>
 </div>
 
 <script>
-const dataSmall = [
-  ["0",0],
-  ["π/6",30],["π/4",45],["π/3",60],["π/2",90],
-  ["2π/3",120],["3π/4",135],["5π/6",150],
-  ["π",180]
-];
-
-const dataLarge = [
-  ["7π/6",210],["5π/4",225],["4π/3",240],
-  ["3π/2",270],["5π/3",300],["7π/4",315],
-  ["11π/6",330],["2π",360]
-];
-
 const funcs=["sin","cos","tan"];
 
-const val={
-  sin0:"0",cos0:"1",tan0:"0",
-  sin30:"1/2",cos30:"√3/2",tan30:"1/√3",
-  sin45:"1/√2",cos45:"1/√2",tan45:"1",
-  sin60:"√3/2",cos60:"1/2",tan60:"√3",
-  sin90:"1",cos90:"0",tan90:"定義なし",
-  sin120:"√3/2",cos120:"-1/2",tan120:"-√3",
-  sin135:"1/√2",cos135:"-1/√2",tan135:"-1",
-  sin150:"1/2",cos150:"-√3/2",tan150:"-1/√3",
-  sin180:"0",cos180:"-1",tan180:"0",
+const values={
+  "sin30":"1/2","cos30":"√3/2","tan30":"1/√3",
+  "sin45":"1/√2","cos45":"1/√2","tan45":"1",
+  "sin60":"√3/2","cos60":"1/2","tan60":"√3",
+  "sin90":"1","cos90":"0","tan90":"定義されない",
+  "sin120":"√3/2","cos120":"-1/2","tan120":"-√3",
+  "sin135":"1/√2","cos135":"-1/√2","tan135":"-1",
+  "sin150":"1/2","cos150":"-√3/2","tan150":"-1/√3",
+  "sin180":"0","cos180":"-1","tan180":"0",
+  "sin210":"-1/2","cos210":"-√3/2","tan210":"1/√3",
+  "sin225":"-1/√2","cos225":"-1/√2","tan225":"1",
+  "sin240":"-√3/2","cos240":"-1/2","tan240":"√3",
+  "sin270":"-1","cos270":"0","tan270":"定義されない",
+  "sin300":"-√3/2","cos300":"1/2","tan300":"-√3",
+  "sin315":"-1/√2","cos315":"1/√2","tan315":"-1",
+  "sin330":"-1/2","cos330":"√3/2","tan330":"1/√3",
+  "sin360":"0","cos360":"1","tan360":"0",
+};
 
-  sin210:"-1/2",cos210:"-√3/2",tan210:"1/√3",
-  sin225:"-1/√2",cos225:"-1/√2",tan225:"1",
-  sin240:"-√3/2",cos240:"-1/2",tan240:"√3",
-  sin270:"-1",cos270:"0",tan270:"定義なし",
-  sin300:"-√3/2",cos300:"1/2",tan300:"-√3",
-  sin315:"-1/√2",cos315:"1/√2",tan315:"-1",
-  sin330:"-1/2",cos330:"√3/2",tan330:"-1/√3",
-  sin360:"0",cos360:"1",tan360:"0"
-}
+let mode="";
+let score=0;
+let count=0;
+let totalQ=10;
+let startTime;
+let correct="";
 
-let rangeData=[];
-let total=10,score=0,count=0,correct="",startT=0,totalT=0,timerInt=null;
+function start(m){
+  mode=m;
+  score=0;
+  count=0;
+  document.getElementById("menu").style.display="none";
+  document.getElementById("nextBtn").style.display="block";
 
-function selectRange(r){
-  rangeData=r==="small"?dataSmall:dataLarge;
-  menu.style.display="none";
-  mode.style.display="block";
-}
+  if(mode==="full50") totalQ=50;
+  else totalQ=10;
 
-function startGame(n){
-  total=n; score=0; count=0; totalT=0;
-  mode.style.display="none";
-  game.style.display="block";
+  startTime = performance.now();
   nextQuestion();
 }
 
-function startTimer(){
-  startT=Date.now();
-  timerInt=setInterval(()=>{
-    let t=(Date.now()-startT)/1000;
-    timer.innerText=`時間：${t.toFixed(1)} 秒`;
-  },100);
-}
-
-function stopTimer(){
-  clearInterval(timerInt);
-  let t=(Date.now()-startT)/1000;
-  totalT+=t;
-  return t;
+function possibleAngles(){
+  if(mode==="low") return [30,45,60,90,120,135,150,180];
+  if(mode==="high") return [210,225,240,270,300,315,330,360];
+  return [30,45,60,90,120,135,150,180,210,225,240,270,300,315,330,360];
 }
 
 function nextQuestion(){
-  if(count>=total) return finish();
+  if(count>=totalQ){
+    let time=(performance.now()-startTime)/1000;
+    document.getElementById("question").innerHTML=`<h2>結果：${score}/${totalQ}</h2>`;
+    document.getElementById("choices").innerHTML="";
+    document.getElementById("result").innerText="";
+    document.getElementById("timer").innerText=`所要時間：${time.toFixed(1)}秒`;
+    document.getElementById("nextBtn").style.display="none";
+    return;
+  }
 
   count++;
-  result.innerText="";
+  let a = possibleAngles();
+  let deg = a[Math.floor(Math.random()*a.length)];
+  let func=funcs[Math.floor(Math.random()*funcs.length)];
+  correct = values[func+deg];
 
-  let [rad,deg]=rangeData[Math.floor(Math.random()*rangeData.length)];
-  let f=funcs[Math.floor(Math.random()*funcs.length)];
-  correct=val[f+deg];
+  document.getElementById("result").innerText="";
+  document.getElementById("timer").innerText="";
+  document.getElementById("question").innerHTML = `<h2>${count}問目：${func}(${deg}°)</h2>`;
+  const div=document.getElementById("choices");
+  div.innerHTML="";
 
-  let cs=Object.values(val).sort(()=>0.5-Math.random()).slice(0,3);
-  if(!cs.includes(correct)) cs.push(correct);
-  cs.sort(()=>0.5-Math.random());
+  let choiceList = Object.values(values).sort(()=>0.5-Math.random()).slice(0,3);
+  if(!choiceList.includes(correct)) choiceList.push(correct);
+  choiceList.sort(()=>0.5-Math.random());
 
-  question.innerHTML=`第${count}問：${f}(${rad})`;
-  choices.innerHTML="";
-
-  cs.forEach(x=>{
-    let d=document.createElement("div");
-    d.className="choice";
-    d.innerText=x;
-    d.onclick=()=>check(d,x);
-    choices.appendChild(d);
+  choiceList.forEach(c=>{
+    let el=document.createElement("div");
+    el.className="choice";
+    el.innerText=c;
+    el.onclick=()=>check(el,c);
+    div.appendChild(el);
   });
-
-  startTimer();
 }
 
-function check(div,x){
-  let t=stopTimer();
-  document.querySelectorAll(".choice").forEach(c=>c.onclick=null);
-
-  if(x===correct){ score++; div.classList.add("correct"); }
-  else{ div.classList.add("wrong"); }
-
-  result.innerText=`${x===correct?"正解":"不正解"}（${t.toFixed(1)}秒）`;
-}
-
-function finish(){
-  question.innerHTML=`終了！ ${score}/${total}`;
-  choices.innerHTML="";
-  result.innerText=`合計：${totalT.toFixed(1)} 秒`;
+function check(el,ans){
+  const all=document.querySelectorAll(".choice");
+  all.forEach(c=>c.onclick=null);
+  if(ans===correct){
+    el.classList.add("correct");
+    score++;
+    document.getElementById("result").innerText="〇 正解！";
+  }else{
+    el.classList.add("wrong");
+    document.getElementById("result").innerText=`✕ 正解：${correct}`;
+  }
 }
 </script>
 </body>
