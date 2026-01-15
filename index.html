@@ -1,145 +1,198 @@
-　<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>三角比テスト（象限選択式）</title>
+<title>三角比テスト</title>
 <style>
-  body { font-family: system-ui; background:#f5f5f5; padding:20px; }
-  .card { background:white; padding:20px; border-radius:12px; max-width:420px;
-          margin:auto; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
-  h1 { text-align:center; }
-  button,input { width:100%; padding:12px; font-size:18px; margin-top:10px; }
-  .choice { padding:12px; border:1px solid #ccc; border-radius:8px; margin:8px 0;
-            background:#fafafa; cursor:pointer; font-size:18px; }
-  .choice:hover { background:#eaeaea; }
-  .correct { background:#c8f7c5; }
-  .wrong { background:#f7c5c5; }
-  .timer { text-align:center; font-weight:bold; margin:10px 0; }
+  body { font-family: system-ui; background:#f4f4f4; padding:20px; }
+  .card {
+    background:white; padding:18px; border-radius:12px; max-width:440px; margin:auto;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  }
+  .choice { padding:12px; margin:8px 0; border:1px solid #ccc; border-radius:8px; background:#fafafa; font-size:18px; cursor:pointer; }
+  .choice:hover{ background:#e9e9e9; }
+  .correct{ background:#c8f7c5!important; }
+  .wrong{ background:#f7c5c5!important; }
+  button{ width:100%; padding:12px; margin-top:12px; font-size:18px; border-radius:8px; }
+  .timer{ font-weight:bold; margin:10px 0; text-align:center; }
+  .menu button{ margin-top:12px; }
+  .h1 { text-align:center; }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <h1>三角比テスト</h1>
-  <p>範囲を選べ</p>
-  <button onclick="selectMode(1)">0°〜180°</button>
-  <button onclick="selectMode(2)">180°〜360°</button>
-  <button onclick="selectMode(3)">両方（実戦）</button>
+  <h2 class="h1">三角比テスト</h2>
 
-  <div class="timer" id="timer"></div>
-  <div id="question"></div>
-  <div id="choices"></div>
-  <button onclick="nextQuestion()" id="nextBtn" style="display:none;">次の問題</button>
-  <p id="result"></p>
+  <!-- メニュー -->
+  <div id="menu" class="menu">
+    <p>範囲を選択</p>
+    <button onclick="selectRange('small')">30°〜180°</button>
+    <button onclick="selectRange('large')">180°〜360°</button>
+  </div>
+
+  <!-- モード選択 -->
+  <div id="mode" style="display:none;">
+    <p>モードを選択</p>
+    <button onclick="startGame(10)">通常10問</button>
+    <button onclick="startGame(50)">50問連続</button>
+    <button onclick="showRanking()">ランキングを見る</button>
+  </div>
+
+  <div id="game" style="display:none;">
+    <div class="timer" id="timer">時間：0.0 秒</div>
+    <div id="question"></div>
+    <div id="choices"></div>
+    <button onclick="nextQuestion()">次の問題</button>
+    <p id="result"></p>
+  </div>
+
+  <div id="ranking" style="display:none;">
+    <h3>ランキング</h3>
+    <div id="rankList"></div>
+    <button onclick="backToMenu()">戻る</button>
+  </div>
 </div>
 
 <script>
-const range1 = [
- ["π/6",30],["π/4",45],["π/3",60],["π/2",90],
- ["2π/3",120],["3π/4",135],["5π/6",150],["π",180]
+const dataSmall = [
+  ["π/6",30],["π/4",45],["π/3",60],["π/2",90],
+  ["2π/3",120],["3π/4",135],["5π/6",150],["π",180]
 ];
 
-const range2 = [
- ["7π/6",210],["5π/4",225],["4π/3",240],["3π/2",270],
- ["5π/3",300],["7π/4",315],["11π/6",330],["2π",360]
+const dataLarge = [
+  ["7π/6",210],["5π/4",225],["4π/3",240],["3π/2",270],
+  ["5π/3",300],["7π/4",315],["11π/6",330],["2π",360]
 ];
 
-const values = {
- "sin30":"1/2","cos30":"√3/2","tan30":"1/√3",
- "sin45":"1/√2","cos45":"1/√2","tan45":"1",
- "sin60":"√3/2","cos60":"1/2","tan60":"√3",
- "sin90":"1","cos90":"0","tan90":"定義されない",
- "sin120":"√3/2","cos120":"-1/2","tan120":"-√3",
- "sin135":"1/√2","cos135":"-1/√2","tan135":"-1",
- "sin150":"1/2","cos150":"-√3/2","tan150":"-1/√3",
- "sin180":"0","cos180":"-1","tan180":"0",
+const funcs=["sin","cos","tan"];
 
- // ここから 180°〜360°
- "sin210":"-1/2","cos210":"-√3/2","tan210":"1/√3",
- "sin225":"-1/√2","cos225":"-1/√2","tan225":"1",
- "sin240":"-√3/2","cos240":"-1/2","tan240":"√3",
- "sin270":"-1","cos270":"0","tan270":"定義されない",
- "sin300":"-√3/2","cos300":"1/2","tan300":"-√3",
- "sin315":"-1/√2","cos315":"1/√2","tan315":"-1",
- "sin330":"-1/2","cos330":"√3/2","tan330":"-1/√3",
- "sin360":"0","cos360":"1","tan360":"0"
-};
+const val={
+  sin30:"1/2",cos30:"√3/2",tan30:"1/√3",
+  sin45:"1/√2",cos45:"1/√2",tan45:"1",
+  sin60:"√3/2",cos60:"1/2",tan60:"√3",
+  sin90:"1",cos90:"0",tan90:"定義なし",
+  sin120:"√3/2",cos120:"-1/2",tan120:"-√3",
+  sin135:"1/√2",cos135:"-1/√2",tan135:"-1",
+  sin150:"1/2",cos150:"-√3/2",tan150:"-1/√3",
+  sin180:"0",cos180:"-1",tan180:"0",
 
-const funcs = ["sin","cos","tan"];
-let list = [];
-let score = 0, count = 0, TOTAL = 10;
-let correctAnswer = "", startTime = 0, totalTime = 0;
-let timerInt = null;
+  sin210:"-1/2",cos210:"-√3/2",tan210:"1/√3",
+  sin225:"-1/√2",cos225:"-1/√2",tan225:"1",
+  sin240:"-√3/2",cos240:"-1/2",tan240:"√3",
+  sin270:"-1",cos270:"0",tan270:"定義なし",
+  sin300:"-√3/2",cos300:"1/2",tan300:"-√3",
+  sin315:"-1/√2",cos315:"1/√2",tan315:"-1",
+  sin330:"-1/2",cos330:"√3/2",tan330:"-1/√3",
+  sin360:"0",cos360:"1",tan360:"0"
+}
 
-function selectMode(m){
- if(m===1) list=range1;
- if(m===2) list=range2;
- if(m===3) list=[...range1,...range2];
- document.querySelectorAll("button")[0].style.display="none";
- document.querySelectorAll("button")[1].style.display="none";
- document.querySelectorAll("button")[2].style.display="none";
- nextQuestion();
+let rangeData=[];
+let qTotal=10,score=0,count=0,correct="",startT=0,totalT=0,timerInt=null,mode="";
+
+function selectRange(r){
+  rangeData = r==="small"?dataSmall:dataLarge;
+  document.getElementById("menu").style.display="none";
+  document.getElementById("mode").style.display="block";
+}
+
+function startGame(n){
+  qTotal=n;
+  score=0;count=0;totalT=0;
+  mode=`${rangeData===dataSmall?"Small":"Large"}-${n}`;
+  document.getElementById("mode").style.display="none";
+  document.getElementById("game").style.display="block";
+  nextQuestion();
 }
 
 function startTimer(){
- startTime=Date.now();
- timerInt=setInterval(()=>{
-  const t=(Date.now()-startTime)/1000;
-  document.getElementById("timer").innerText=`時間：${t.toFixed(1)} 秒`;
- },100);
+  startT=Date.now();
+  timerInt=setInterval(()=>{
+    let t=(Date.now()-startT)/1000;
+    document.getElementById("timer").innerText=`時間：${t.toFixed(1)} 秒`;
+  },100);
 }
 
 function stopTimer(){
- clearInterval(timerInt);
- const t=(Date.now()-startTime)/1000;
- totalTime+=t;
- return t;
+  clearInterval(timerInt);
+  let t=(Date.now()-startT)/1000;
+  totalT+=t;
+  return t;
 }
 
 function nextQuestion(){
- document.getElementById("nextBtn").style.display="none";
- document.getElementById("result").innerText="";
- if(count>=TOTAL){
-   document.getElementById("question").innerHTML=`<h2>結果：${score}/${TOTAL}</h2>`;
-   document.getElementById("choices").innerHTML="";
-   document.getElementById("timer").innerText=`合計時間：${totalTime.toFixed(1)}秒`;
-   return;
- }
- count++;
- const [rad,deg] = list[Math.floor(Math.random()*list.length)];
- const func = funcs[Math.floor(Math.random()*funcs.length)];
- correctAnswer = values[func+deg];
+  if(count>=qTotal) return finish();
 
- let choices = Object.values(values).sort(()=>0.5-Math.random()).slice(0,3);
- if(!choices.includes(correctAnswer)) choices.push(correctAnswer);
- choices = choices.sort(()=>0.5-Math.random());
+  count++;
+  document.getElementById("result").innerText="";
 
- document.getElementById("question").innerHTML=`<h2>第${count}問：${func}(${rad})</h2>`;
- const div=document.getElementById("choices");
- div.innerHTML="";
- choices.forEach(c=>{
-  let d=document.createElement("div");
-  d.className="choice";
-  d.innerText=c;
-  d.onclick=()=>checkAnswer(d,c);
-  div.appendChild(d);
- });
- startTimer();
+  let [rad,deg]=rangeData[Math.floor(Math.random()*rangeData.length)];
+  let f=funcs[Math.floor(Math.random()*funcs.length)];
+  correct = val[f+deg];
+
+  let c=Object.values(val).sort(()=>0.5-Math.random()).slice(0,3);
+  if(!c.includes(correct)) c.push(correct);
+  c.sort(()=>0.5-Math.random());
+
+  document.getElementById("question").innerHTML=`第${count}問：${f}(${rad})`;
+  let box=document.getElementById("choices");
+  box.innerHTML="";
+  c.forEach(x=>{
+    let div=document.createElement("div");
+    div.className="choice";
+    div.innerText=x;
+    div.onclick=()=>check(div,x);
+    box.appendChild(div);
+  });
+
+  startTimer();
 }
 
-function checkAnswer(dom,ans){
- const t=stopTimer();
- [...document.querySelectorAll(".choice")].forEach(e=>e.onclick=null);
- if(ans===correctAnswer){
-  dom.classList.add("correct"); score++;
-  document.getElementById("result").innerText=`○ 正解！(${t.toFixed(1)}秒)`;
- } else {
-  dom.classList.add("wrong");
-  document.getElementById("result").innerText=
-   `× 不正解（正：${correctAnswer}｜${t.toFixed(1)}秒）`;
- }
- document.getElementById("nextBtn").style.display="block";
+function check(div,x){
+  let t=stopTimer();
+  document.querySelectorAll(".choice").forEach(c=>c.onclick=null);
+  if(x===correct){score++;div.classList.add("correct");}
+  else{div.classList.add("wrong");}
+  document.getElementById("result").innerText=`${x===correct?"正解":"不正解"}（${t.toFixed(1)}秒）`;
+}
+
+function finish(){
+  document.getElementById("question").innerHTML=`結果：${score}/${qTotal}`;
+  document.getElementById("choices").innerHTML="";
+  document.getElementById("result").innerText=`合計：${totalT.toFixed(1)} 秒`;
+
+  saveRank(mode,totalT);
+  setTimeout(()=>showRanking(),1000);
+}
+
+function saveRank(key,time){
+  let list=JSON.parse(localStorage.getItem(key)||"[]");
+  list.push(time);
+  list.sort((a,b)=>a-b);
+  list=list.slice(0,5);
+  localStorage.setItem(key,JSON.stringify(list));
+}
+
+function showRanking(){
+  document.getElementById("game").style.display="none";
+  document.getElementById("ranking").style.display="block";
+
+  let html="";
+
+  ["Small-10","Small-50","Large-10","Large-50"].forEach(k=>{
+    let list=JSON.parse(localStorage.getItem(k)||"[]");
+    html+=`<p><b>${k}</b></p>`;
+    if(list.length===0) html+="記録なし<br>";
+    else list.forEach((t,i)=>html+=`${i+1}位：${t.toFixed(1)}秒<br>`);
+    html+="<br>";
+  });
+
+  document.getElementById("rankList").innerHTML=html;
+}
+
+function backToMenu(){
+  document.location.reload();
 }
 </script>
 </body>
